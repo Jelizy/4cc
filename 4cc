@@ -5,76 +5,80 @@ lampa.plugins.add({
     init: function() {
         console.log('4kino.cc Plugin initialized');
 
-        lampa.sourceManager.registerSource({
-            name: '4kino.cc',
-            description: 'Фильмы с 4kino.cc',
-            icon: 'https://4kino.cc/favicon.ico',
-            search: function(query, callback) {
-                console.log('Searching for:', query);
+        try {
+            lampa.sourceManager.registerSource({
+                name: '4kino.cc',
+                description: 'Фильмы с 4kino.cc',
+                icon: 'https://4kino.cc/favicon.ico',
+                search: function(query, callback) {
+                    console.log('Searching for:', query);
 
-                fetch(`https://4kino.cc/index.php?do=search&subaction=search&story=${encodeURIComponent(query)}`)
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error('Network response was not ok');
-                        }
-                        return response.text();
-                    })
-                    .then(html => {
-                        const parser = new DOMParser();
-                        const doc = parser.parseFromString(html, 'text/html');
-                        const results = [];
-
-                        doc.querySelectorAll('.short-item').forEach(item => {
-                            const title = item.querySelector('.short-title')?.textContent.trim();
-                            const link = item.querySelector('a')?.href;
-                            if (title && link) {
-                                results.push({
-                                    title: title,
-                                    link: link
-                                });
+                    fetch(`https://4kino.cc/index.php?do=search&subaction=search&story=${encodeURIComponent(query)}`)
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error('Network response was not ok');
                             }
-                        });
+                            return response.text();
+                        })
+                        .then(html => {
+                            const parser = new DOMParser();
+                            const doc = parser.parseFromString(html, 'text/html');
+                            const results = [];
 
-                        console.log('Search results:', results);
-                        callback(results);
-                    })
-                    .catch(error => {
-                        console.error('Ошибка при поиске:', error);
-                        callback([]);
-                    });
-            },
-            getMedia: function(link, callback) {
-                console.log('Fetching media from:', link);
-
-                fetch(link)
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error('Network response was not ok');
-                        }
-                        return response.text();
-                    })
-                    .then(html => {
-                        const parser = new DOMParser();
-                        const doc = parser.parseFromString(html, 'text/html');
-
-                        const title = doc.querySelector('h1')?.textContent.trim();
-                        const videoUrl = doc.querySelector('.video-container iframe')?.src;
-
-                        if (title && videoUrl) {
-                            console.log('Media info:', { title, videoUrl });
-                            callback({
-                                title: title,
-                                videoUrl: videoUrl
+                            doc.querySelectorAll('.short-item').forEach(item => {
+                                const title = item.querySelector('.short-title')?.textContent.trim();
+                                const link = item.querySelector('a')?.href;
+                                if (title && link) {
+                                    results.push({
+                                        title: title,
+                                        link: link
+                                    });
+                                }
                             });
-                        } else {
-                            throw new Error('Failed to parse media info');
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Ошибка при получении фильма:', error);
-                        callback(null);
-                    });
-            }
-        });
+
+                            console.log('Search results:', results);
+                            callback(results);
+                        })
+                        .catch(error => {
+                            console.error('Ошибка при поиске:', error);
+                            callback([]);
+                        });
+                },
+                getMedia: function(link, callback) {
+                    console.log('Fetching media from:', link);
+
+                    fetch(link)
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error('Network response was not ok');
+                            }
+                            return response.text();
+                        })
+                        .then(html => {
+                            const parser = new DOMParser();
+                            const doc = parser.parseFromString(html, 'text/html');
+
+                            const title = doc.querySelector('h1')?.textContent.trim();
+                            const videoUrl = doc.querySelector('.video-container iframe')?.src;
+
+                            if (title && videoUrl) {
+                                console.log('Media info:', { title, videoUrl });
+                                callback({
+                                    title: title,
+                                    videoUrl: videoUrl
+                                });
+                            } else {
+                                throw new Error('Failed to parse media info');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Ошибка при получении фильма:', error);
+                            callback(null);
+                        });
+                }
+            });
+        } catch (error) {
+            console.error('Ошибка при инициализации плагина:', error);
+        }
     }
 });
