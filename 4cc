@@ -1,0 +1,63 @@
+lampa.plugins.add({
+    name: '4kino.cc Plugin',
+    version: '1.0',
+    description: 'Adds support for 4kino.cc to Lampa',
+    init: function() {
+        // Регистрируем новый источник контента
+        lampa.sourceManager.registerSource({
+            name: '4kino.cc',
+            description: 'Фильмы с 4kino.cc',
+            icon: 'https://4kino.cc/favicon.ico', // Иконка для источника
+            search: function(query, callback) {
+                // Поиск фильмов по запросу
+                fetch(`https://4kino.cc/index.php?do=search&subaction=search&story=${encodeURIComponent(query)}`)
+                    .then(response => response.text())
+                    .then(html => {
+                        // Парсим HTML и извлекаем данные
+                        const parser = new DOMParser();
+                        const doc = parser.parseFromString(html, 'text/html');
+                        const results = [];
+
+                        // Пример: извлекаем названия и ссылки на фильмы
+                        doc.querySelectorAll('.short-item').forEach(item => {
+                            const title = item.querySelector('.short-title').textContent.trim();
+                            const link = item.querySelector('a').href;
+                            results.push({
+                                title: title,
+                                link: link
+                            });
+                        });
+
+                        callback(results);
+                    })
+                    .catch(error => {
+                        console.error('Ошибка при поиске:', error);
+                        callback([]);
+                    });
+            },
+            getMedia: function(link, callback) {
+                // Получаем информацию о фильме и ссылку на воспроизведение
+                fetch(link)
+                    .then(response => response.text())
+                    .then(html => {
+                        const parser = new DOMParser();
+                        const doc = parser.parseFromString(html, 'text/html');
+
+                        // Пример: извлекаем ссылку на видео
+                        const videoUrl = doc.querySelector('.video-container iframe').src;
+
+                        callback({
+                            title: doc.querySelector('h1').textContent.trim(),
+                            videoUrl: videoUrl
+                        });
+                    })
+                    .catch(error => {
+                        console.error('Ошибка при получении фильма:', error);
+                        callback(null);
+                    });
+            }
+        });
+
+        console.log('4kino.cc Plugin initialized');
+    }
+});
