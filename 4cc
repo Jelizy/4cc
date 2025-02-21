@@ -3,31 +3,39 @@ lampa.plugins.add({
     version: '1.0',
     description: 'Adds support for 4kino.cc to Lampa',
     init: function() {
-        // Регистрируем новый источник контента
+        console.log('4kino.cc Plugin initialized');
+
         lampa.sourceManager.registerSource({
             name: '4kino.cc',
             description: 'Фильмы с 4kino.cc',
-            icon: 'https://4kino.cc/favicon.ico', // Иконка для источника
+            icon: 'https://4kino.cc/favicon.ico',
             search: function(query, callback) {
-                // Поиск фильмов по запросу
+                console.log('Searching for:', query);
+
                 fetch(`https://4kino.cc/index.php?do=search&subaction=search&story=${encodeURIComponent(query)}`)
-                    .then(response => response.text())
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        return response.text();
+                    })
                     .then(html => {
-                        // Парсим HTML и извлекаем данные
                         const parser = new DOMParser();
                         const doc = parser.parseFromString(html, 'text/html');
                         const results = [];
 
-                        // Пример: извлекаем названия и ссылки на фильмы
                         doc.querySelectorAll('.short-item').forEach(item => {
-                            const title = item.querySelector('.short-title').textContent.trim();
-                            const link = item.querySelector('a').href;
-                            results.push({
-                                title: title,
-                                link: link
-                            });
+                            const title = item.querySelector('.short-title')?.textContent.trim();
+                            const link = item.querySelector('a')?.href;
+                            if (title && link) {
+                                results.push({
+                                    title: title,
+                                    link: link
+                                });
+                            }
                         });
 
+                        console.log('Search results:', results);
                         callback(results);
                     })
                     .catch(error => {
@@ -36,20 +44,31 @@ lampa.plugins.add({
                     });
             },
             getMedia: function(link, callback) {
-                // Получаем информацию о фильме и ссылку на воспроизведение
+                console.log('Fetching media from:', link);
+
                 fetch(link)
-                    .then(response => response.text())
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        return response.text();
+                    })
                     .then(html => {
                         const parser = new DOMParser();
                         const doc = parser.parseFromString(html, 'text/html');
 
-                        // Пример: извлекаем ссылку на видео
-                        const videoUrl = doc.querySelector('.video-container iframe').src;
+                        const title = doc.querySelector('h1')?.textContent.trim();
+                        const videoUrl = doc.querySelector('.video-container iframe')?.src;
 
-                        callback({
-                            title: doc.querySelector('h1').textContent.trim(),
-                            videoUrl: videoUrl
-                        });
+                        if (title && videoUrl) {
+                            console.log('Media info:', { title, videoUrl });
+                            callback({
+                                title: title,
+                                videoUrl: videoUrl
+                            });
+                        } else {
+                            throw new Error('Failed to parse media info');
+                        }
                     })
                     .catch(error => {
                         console.error('Ошибка при получении фильма:', error);
@@ -57,7 +76,5 @@ lampa.plugins.add({
                     });
             }
         });
-
-        console.log('4kino.cc Plugin initialized');
     }
 });
